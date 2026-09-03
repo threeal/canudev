@@ -2,11 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Template notice:** This file describes the template repository itself. If working in a project derived from this template, inform the user that this CLAUDE.md still contains template guidance and should be updated with project-specific content.
-
 ## About This Repository
 
-This is a minimal, language-agnostic starter template with formatting enforcement and a CI workflow as a baseline. There is no build system, test suite, or application code — those are added by projects that use this template.
+canudev is a single, dependency-light bash script (`canudev.sh`) that interactively manages udev rules for CAN interfaces. It's meant to be run either after cloning or directly via `curl -fsSL <url> | bash`, and it works by reading, adding to, and rewriting marked blocks in `/etc/udev/rules.d/99-canbus.rules` — one block per physical CAN interface — covering static naming (via `KERNELS`), auto-bring-up, and bitrate configuration.
 
 ## Tooling
 
