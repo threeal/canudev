@@ -1,0 +1,24 @@
+name: CI
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install dprint
+        run: |
+          curl -fsSL https://dprint.dev/install.sh | sh
+          echo "$HOME/.dprint/bin" >> $GITHUB_PATH
+
+      - name: Setup Lefthook
+        uses: threeal/setup-lefthook-action@v1.0.0
+
+      - name: Check pre-commit hook
+        run: lefthook run pre-commit --all-files
