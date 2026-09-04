@@ -1,20 +1,20 @@
 # canudev
 
-Interactively manage udev rules for CAN interfaces — static naming, auto-up, and bitrate — no dependencies beyond bash and `ip`.
+Interactively manage udev rules for CAN interfaces — static naming, auto-up, and bitrate — using nothing beyond bash, `ip`, `udevadm`, and `sha256sum`.
 
 ## Usage
 
-Run it directly:
+Run it directly (root is required to write udev rules and reload them):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/threeal/canudev/main/canudev.sh | bash
+curl -fsSL https://raw.githubusercontent.com/threeal/canudev/main/canudev.sh | sudo bash
 ```
 
 Or download it and run it locally:
 
 ```sh
 curl -fsSLo canudev.sh https://raw.githubusercontent.com/threeal/canudev/main/canudev.sh
-bash canudev.sh
+sudo bash canudev.sh
 ```
 
 ## Development
