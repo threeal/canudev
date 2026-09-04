@@ -1,6 +1,6 @@
 # canudev
 
-Interactively manage udev rules for CAN interfaces — static naming, auto-up, and bitrate — no dependencies beyond bash and `ip`.
+Interactively manage udev rules for CAN interfaces — static naming, auto-up, and bitrate — using nothing beyond bash, `ip`, `udevadm`, and `sha256sum`.
 
 ## Usage
 

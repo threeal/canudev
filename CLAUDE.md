@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## About This Repository
 
-canudev is a single, dependency-light bash script (`canudev.sh`) that interactively manages udev rules for CAN interfaces. It's meant to be run either after cloning or directly via `curl -fsSL <url> | bash`, and it works by reading, adding to, and rewriting marked blocks in `/etc/udev/rules.d/99-canbus.rules` — one block per physical CAN interface — covering static naming (via `KERNELS`), auto-bring-up, and bitrate configuration.
+canudev is a single, dependency-light bash script (`canudev.sh`) that interactively manages udev rules for CAN interfaces, and must be run as root (e.g. `curl -fsSL <url> | sudo bash`). See `canudev.sh` for implementation details.
 
 ## Tooling
 
