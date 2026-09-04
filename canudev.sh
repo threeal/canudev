@@ -2,7 +2,8 @@
 set -euo pipefail
 
 RULES_FILE="/etc/udev/rules.d/99-canbus.rules"
-CONFIG_VERSION_LINE="# canudev-config v1"
+CONFIG_VERSION=1
+BITRATE=1000000
 
 declare -A KERNELS_TO_NAME=()
 
@@ -13,9 +14,24 @@ require_root() {
   fi
 }
 
+# Parses a v1 config body (version line already consumed) into KERNELS_TO_NAME.
+parse_config_v1() {
+  local body="$1" line kernels name
+  while IFS= read -r line; do
+    case "$line" in
+      "#"*) ;;
+      *) break ;;
+    esac
+    line=${line#"# "}
+    read -r kernels name <<<"$line"
+    KERNELS_TO_NAME["$kernels"]="$name"
+  done < <(printf '%s\n' "$body" | tail -n +2)
+}
+
 # Reads and verifies $RULES_FILE, populating KERNELS_TO_NAME.
 # Warns and starts with an empty mapping if the file is missing its expected
-# hash, has an unsupported config version, or doesn't exist yet.
+# hash, has a config version this script doesn't know how to parse, or
+# doesn't exist yet.
 read_rules_file() {
   KERNELS_TO_NAME=()
 
@@ -34,36 +50,35 @@ read_rules_file() {
     return
   fi
 
-  local version_line
+  local version_line version
   version_line=$(printf '%s\n' "$body" | head -n 1)
-  if [ "$version_line" != "$CONFIG_VERSION_LINE" ]; then
-    echo "warning: ${RULES_FILE} has an unsupported config version; existing entries will be ignored and replaced" >&2
+  if [[ "$version_line" =~ ^#\ canudev-config\ v([0-9]+)$ ]]; then
+    version="${BASH_REMATCH[1]}"
+  else
+    echo "warning: ${RULES_FILE} has no recognizable config version marker; existing entries will be ignored and replaced" >&2
     return
   fi
 
-  local line kernels name
-  while IFS= read -r line; do
-    case "$line" in
-      "#"*) ;;
-      *) break ;;
-    esac
-    line=${line#"# "}
-    read -r kernels name <<<"$line"
-    KERNELS_TO_NAME["$kernels"]="$name"
-  done < <(printf '%s\n' "$body" | tail -n +2)
+  case "$version" in
+    1) parse_config_v1 "$body" ;;
+    *)
+      echo "warning: ${RULES_FILE} has config version ${version}, which this version of canudev doesn't know how to read; existing entries will be ignored and replaced" >&2
+      ;;
+  esac
 }
 
 # Regenerates $RULES_FILE in full from KERNELS_TO_NAME, then reloads udev.
 write_rules_file() {
   local body kernels name
-  body="${CONFIG_VERSION_LINE}"$'\n'
+  body="# canudev-config v${CONFIG_VERSION}"$'\n'
   for kernels in "${!KERNELS_TO_NAME[@]}"; do
     body+="# ${kernels} ${KERNELS_TO_NAME[$kernels]}"$'\n'
   done
   body+=$'\n'
   for kernels in "${!KERNELS_TO_NAME[@]}"; do
     name="${KERNELS_TO_NAME[$kernels]}"
-    body+="SUBSYSTEM==\"net\", ACTION==\"add\", KERNELS==\"${kernels}\", ATTR{type}==\"280\", NAME=\"${name}\""$'\n'
+    body+="SUBSYSTEM==\"net\", ACTION==\"add\", KERNELS==\"${kernels}\", ATTR{type}==\"280\", NAME=\"${name}\", \\"$'\n'
+    body+="  RUN+=\"/sbin/ip link set ${name} up type can bitrate ${BITRATE}\""$'\n'
   done
 
   local hash tmp_file
@@ -78,6 +93,20 @@ write_rules_file() {
 
   udevadm control --reload-rules
   udevadm trigger
+}
+
+# Manually applies a rename (if needed) plus bitrate and bring-up, since
+# udevadm trigger won't re-fire an add event for an interface that already
+# exists — the rule only takes effect on its own after a replug or reboot.
+apply_interface_state() {
+  local old_name="$1" new_name="$2"
+  if [ "$old_name" != "$new_name" ]; then
+    ip link set "$old_name" down
+    ip link set "$old_name" name "$new_name"
+  else
+    ip link set "$new_name" down
+  fi
+  ip link set "$new_name" up type can bitrate "$BITRATE"
 }
 
 list_can_interfaces() {
@@ -114,29 +143,40 @@ main() {
   read_rules_file
 
   while true; do
-    local ifaces=()
+    local ifaces=() iface_kernels=() iface_labels=()
+    local iface
     while IFS= read -r iface; do
-      [ -n "$iface" ] && ifaces+=("$iface")
+      [ -n "$iface" ] || continue
+
+      local kernels label mapped_name
+      if kernels=$(resolve_kernels "$iface"); then
+        if [ -n "${KERNELS_TO_NAME[$kernels]+set}" ]; then
+          mapped_name="${KERNELS_TO_NAME[$kernels]}"
+          if [ "$mapped_name" = "$iface" ]; then
+            label="$iface (static)"
+          else
+            label="$iface (static, expected name: ${mapped_name} — not yet applied)"
+          fi
+        else
+          label="$iface (unnamed)"
+        fi
+      else
+        kernels=""
+        label="$iface (location unknown)"
+      fi
+
+      ifaces+=("$iface")
+      iface_kernels+=("$kernels")
+      iface_labels+=("$label")
     done < <(list_can_interfaces)
 
     if [ "${#ifaces[@]}" -eq 0 ]; then
       echo "no CAN interfaces found"
     else
       echo "CAN interfaces:"
-      local i=1 iface is_static name
-      for iface in "${ifaces[@]}"; do
-        is_static=0
-        for name in "${KERNELS_TO_NAME[@]}"; do
-          if [ "$name" = "$iface" ]; then
-            is_static=1
-            break
-          fi
-        done
-        if [ "$is_static" -eq 1 ]; then
-          echo "  [$i] $iface (static)"
-        else
-          echo "  [$i] $iface (unnamed)"
-        fi
+      local i=1
+      for label in "${iface_labels[@]}"; do
+        echo "  [$i] $label"
         i=$((i + 1))
       done
     fi
@@ -162,8 +202,8 @@ main() {
     fi
 
     local selected="${ifaces[$((choice - 1))]}"
-    local kernels
-    if ! kernels=$(resolve_kernels "$selected"); then
+    local kernels="${iface_kernels[$((choice - 1))]}"
+    if [ -z "$kernels" ]; then
       echo "error: could not determine the physical location of ${selected}; skipping" >&2
       continue
     fi
@@ -177,6 +217,7 @@ main() {
 
     KERNELS_TO_NAME["$kernels"]="$new_name"
     write_rules_file
+    apply_interface_state "$selected" "$new_name"
   done
 }
 
