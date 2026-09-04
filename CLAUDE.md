@@ -8,6 +8,10 @@ canudev is a single, dependency-light bash script (`canudev.sh`) that interactiv
 
 ## Tooling
 
+### bats
+
+Test framework for `canudev.sh` via `tests/canudev.bats`. Tests source the script directly — the trailing `main "$@"` call is guarded by a `BASH_SOURCE`/`$0` check so sourcing doesn't run the interactive loop — and stub external commands like `ip` and `udevadm` as plain bash functions rather than mocking via `PATH`.
+
 ### Dependabot
 
 Keeps GitHub Actions dependencies up to date automatically via `.github/dependabot.yaml`.
@@ -20,7 +24,7 @@ Formatter for JSON, Markdown, and YAML files via `dprint.json`.
 
 Automates CI. Workflow files:
 
-- **`.github/workflows/ci.yaml`** — Triggers on push to `main`, pull requests, and manual dispatch. Runs `lefthook run pre-commit --all-files` to validate formatting.
+- **`.github/workflows/ci.yaml`** — Triggers on push to `main`, pull requests, and manual dispatch. Runs `lefthook run pre-commit --all-files` to validate formatting and `bats tests/` to run the test suite.
 
 ### Lefthook
 
@@ -38,3 +42,11 @@ lefthook run pre-commit --all-files  # all files — matches what CI runs
 ```
 
 If any file changes during the run, re-stage the changed files and retry.
+
+## Testing
+
+Run the test suite (requires [bats-core](https://github.com/bats-core/bats-core)):
+
+```sh
+bats tests/
+```

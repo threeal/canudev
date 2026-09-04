@@ -33,7 +33,13 @@ lefthook run pre-commit
 
 If any file changes during the run, re-stage the changed files and retry. The hook also runs automatically on each `git commit` — if it fails, re-stage the changed files and commit again.
 
-After committing, push to `main` or open a pull request from another branch — CI will run the pre-commit hook across all files.
+Install [bats-core](https://bats-core.readthedocs.io/) to run the test suite:
+
+```sh
+bats tests/
+```
+
+After committing, push to `main` or open a pull request from another branch — CI will run the pre-commit hook and the test suite across all files.
 
 ## License
 
