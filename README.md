@@ -4,17 +4,17 @@ Interactively manage udev rules for CAN interfaces — static naming, auto-up, a
 
 ## Usage
 
-Run it directly:
+Run it directly (root is required to write udev rules and reload them):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/threeal/canudev/main/canudev.sh | bash
+curl -fsSL https://raw.githubusercontent.com/threeal/canudev/main/canudev.sh | sudo bash
 ```
 
 Or download it and run it locally:
 
 ```sh
 curl -fsSLo canudev.sh https://raw.githubusercontent.com/threeal/canudev/main/canudev.sh
-bash canudev.sh
+sudo bash canudev.sh
 ```
 
 ## Development
