@@ -17,8 +17,16 @@ jobs:
           curl -fsSL https://dprint.dev/install.sh | sh
           echo "$HOME/.dprint/bin" >> $GITHUB_PATH
 
+      - name: Install bats
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+
       - name: Setup Lefthook
         uses: threeal/setup-lefthook-action@v1.0.0
 
       - name: Check pre-commit hook
         run: lefthook run pre-commit --all-files
+
+      - name: Run tests
+        run: bats tests/

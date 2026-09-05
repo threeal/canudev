@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RULES_FILE="/etc/udev/rules.d/99-canbus.rules"
+RULES_FILE="${RULES_FILE:-/etc/udev/rules.d/99-canbus.rules}"
 CONFIG_VERSION=1
 BITRATE=1000000
 
-declare -A KERNELS_TO_NAME=()
+declare -g -A KERNELS_TO_NAME=()
 
 require_root() {
   if [ "$(id -u)" -ne 0 ]; then
@@ -221,4 +221,6 @@ main() {
   done
 }
 
-main
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi
