@@ -19,7 +19,7 @@ sudo bash canudev.sh
 
 ## Development
 
-Install [Lefthook](https://lefthook.dev/) and [dprint](https://dprint.dev/), then register the pre-commit hook:
+Install [Lefthook](https://lefthook.dev/), [dprint](https://dprint.dev/), and [ShellCheck](https://www.shellcheck.net/), then register the pre-commit hook:
 
 ```sh
 lefthook install

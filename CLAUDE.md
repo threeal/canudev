@@ -24,13 +24,14 @@ Formatter for JSON, Markdown, and YAML files via `dprint.json`.
 
 Automates CI. Workflow files:
 
-- **`.github/workflows/ci.yaml`** — Triggers on push to `main`, pull requests, and manual dispatch. Runs `lefthook run pre-commit --all-files` to validate formatting and `bats tests/` to run the test suite.
+- **`.github/workflows/ci.yaml`** — Triggers on push to `main`, pull requests, and manual dispatch. Runs `lefthook run pre-commit --all-files` to validate formatting and lint, and `bats tests/` to run the test suite.
 
 ### Lefthook
 
 Git hook manager configured in `lefthook.yaml`. The pre-commit hook:
 
 - Fixes formatting with `dprint fmt`.
+- Lints `canudev.sh` with `shellcheck`.
 
 ## Checking and Fixing
 
