@@ -138,6 +138,17 @@ is_valid_name() {
   [ -n "$name" ] && [ "${#name}" -le 15 ] && [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]]
 }
 
+# Checks whether $name is already assigned to a KERNELS entry other than
+# $exclude_kernels.
+is_name_taken() {
+  local name="$1" exclude_kernels="$2" kernels
+  for kernels in "${!KERNELS_TO_NAME[@]}"; do
+    [ "$kernels" = "$exclude_kernels" ] && continue
+    [ "${KERNELS_TO_NAME[$kernels]}" = "$name" ] && return 0
+  done
+  return 1
+}
+
 main() {
   require_root
   read_rules_file
@@ -212,6 +223,10 @@ main() {
     new_name=$(prompt "enter static name for ${selected}: ")
     if ! is_valid_name "$new_name"; then
       echo "error: invalid interface name" >&2
+      continue
+    fi
+    if is_name_taken "$new_name" "$kernels"; then
+      echo "error: name already in use by another interface" >&2
       continue
     fi
 
