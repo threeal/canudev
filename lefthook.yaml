@@ -5,3 +5,6 @@ pre-commit:
   jobs:
     - name: fix formatting
       run: dprint fmt
+
+    - name: check lint
+      run: shellcheck canudev.sh
