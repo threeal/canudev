@@ -228,3 +228,29 @@ EOF
   run is_valid_name "can0/eth0"
   [ "$status" -ne 0 ]
 }
+
+# is_name_taken
+
+@test "is_name_taken finds a name assigned to a different kernels entry" {
+  KERNELS_TO_NAME=()
+  KERNELS_TO_NAME["1-2:1.0"]="can0"
+
+  run is_name_taken "can0" "1-3:1.0"
+  [ "$status" -eq 0 ]
+}
+
+@test "is_name_taken ignores the excluded kernels entry" {
+  KERNELS_TO_NAME=()
+  KERNELS_TO_NAME["1-2:1.0"]="can0"
+
+  run is_name_taken "can0" "1-2:1.0"
+  [ "$status" -ne 0 ]
+}
+
+@test "is_name_taken succeeds when no other entry uses the name" {
+  KERNELS_TO_NAME=()
+  KERNELS_TO_NAME["1-2:1.0"]="can0"
+
+  run is_name_taken "can1" "1-3:1.0"
+  [ "$status" -ne 0 ]
+}
