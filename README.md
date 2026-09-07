@@ -2,6 +2,8 @@
 
 Interactively manage udev rules for CAN interfaces — static naming, auto-up, and bitrate — using nothing beyond bash, `ip`, `udevadm`, and `sha256sum`.
 
+Currently supports USB-attached CAN adapters only — interfaces on other buses, such as SPI-based controllers like the MCP2515, can't be resolved to a stable physical location and won't be offered a static name.
+
 ## Usage
 
 Run it directly (root is required to write udev rules and reload them):
