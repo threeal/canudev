@@ -98,15 +98,18 @@ write_rules_file() {
 # Manually applies a rename (if needed) plus bitrate and bring-up, since
 # udevadm trigger won't re-fire an add event for an interface that already
 # exists — the rule only takes effect on its own after a replug or reboot.
+# Each step guards its own failure explicitly and returns early, since `set
+# -e` is suppressed for the whole function while it runs as an `if`
+# condition at the call site.
 apply_interface_state() {
   local old_name="$1" new_name="$2"
   if [ "$old_name" != "$new_name" ]; then
-    ip link set "$old_name" down
-    ip link set "$old_name" name "$new_name"
+    ip link set "$old_name" down || return 1
+    ip link set "$old_name" name "$new_name" || return 1
   else
-    ip link set "$new_name" down
+    ip link set "$new_name" down || return 1
   fi
-  ip link set "$new_name" up type can bitrate "$BITRATE"
+  ip link set "$new_name" up type can bitrate "$BITRATE" || return 1
 }
 
 list_can_interfaces() {
@@ -147,6 +150,15 @@ is_name_taken() {
     [ "${KERNELS_TO_NAME[$kernels]}" = "$name" ] && return 0
   done
   return 1
+}
+
+# Checks whether $name is currently in use by an interface other than
+# $exclude_iface (the interface keeping its own current name isn't a
+# collision).
+is_name_in_use() {
+  local name="$1" exclude_iface="$2"
+  [ "$name" = "$exclude_iface" ] && return 1
+  ip link show "$name" >/dev/null 2>&1
 }
 
 main() {
@@ -225,14 +237,16 @@ main() {
       echo "error: invalid interface name" >&2
       continue
     fi
-    if is_name_taken "$new_name" "$kernels"; then
+    if is_name_taken "$new_name" "$kernels" || is_name_in_use "$new_name" "$selected"; then
       echo "error: name already in use by another interface" >&2
       continue
     fi
 
     KERNELS_TO_NAME["$kernels"]="$new_name"
     write_rules_file
-    apply_interface_state "$selected" "$new_name"
+    if ! apply_interface_state "$selected" "$new_name"; then
+      echo "error: failed to apply new name to ${selected}; the rule was saved and will take effect after a replug or reboot" >&2
+    fi
   done
 }
 
