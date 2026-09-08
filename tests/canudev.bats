@@ -162,6 +162,26 @@ EOF
   diff "${BATS_TEST_TMPDIR}/ip.expected" "${BATS_TEST_TMPDIR}/ip.log"
 }
 
+@test "apply_interface_state stops and returns non-zero if a step fails" {
+  ip() {
+    echo "ip $*" >>"${BATS_TEST_TMPDIR}/ip.log"
+    case "$*" in
+      *"name front-can"*) return 1 ;;
+    esac
+  }
+  BITRATE=500000
+
+  run apply_interface_state "can0" "front-can"
+  [ "$status" -ne 0 ]
+
+  cat <<EOF >"${BATS_TEST_TMPDIR}/ip.expected"
+ip link set can0 down
+ip link set can0 name front-can
+EOF
+
+  diff "${BATS_TEST_TMPDIR}/ip.expected" "${BATS_TEST_TMPDIR}/ip.log"
+}
+
 # list_can_interfaces
 
 @test "list_can_interfaces prints just the interface names" {
@@ -252,5 +272,28 @@ EOF
   KERNELS_TO_NAME["1-2:1.0"]="can0"
 
   run is_name_taken "can1" "1-3:1.0"
+  [ "$status" -ne 0 ]
+}
+
+# is_name_in_use
+
+@test "is_name_in_use detects a name already claimed by another interface" {
+  ip() { :; }
+
+  run is_name_in_use "eth0" "can0"
+  [ "$status" -eq 0 ]
+}
+
+@test "is_name_in_use ignores the interface's own current name" {
+  ip() { return 1; }
+
+  run is_name_in_use "can0" "can0"
+  [ "$status" -ne 0 ]
+}
+
+@test "is_name_in_use succeeds when no interface currently uses the name" {
+  ip() { return 1; }
+
+  run is_name_in_use "can2" "can0"
   [ "$status" -ne 0 ]
 }
